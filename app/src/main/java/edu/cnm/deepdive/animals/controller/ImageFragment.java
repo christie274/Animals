@@ -7,14 +7,19 @@ import android.webkit.WebResourceRequest;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
+import androidx.lifecycle.Observer;
+import androidx.lifecycle.ViewModelProvider;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import edu.cnm.deepdive.animals.BuildConfig;
+import edu.cnm.deepdive.animals.MainViewModel;
 import edu.cnm.deepdive.animals.R;
 import edu.cnm.deepdive.animals.model.Animal;
 import edu.cnm.deepdive.animals.service.AnimalService;
@@ -27,14 +32,28 @@ import retrofit2.converter.gson.GsonConverterFactory;
 public class ImageFragment extends Fragment {
 
   private WebView contentView;
+  private MainViewModel viewModel;
 
   @Override
   public View onCreateView(LayoutInflater inflater, ViewGroup container,
       Bundle savedInstanceState) {
-
     View root = inflater.inflate(R.layout.fragment_image, container, false);
     setupWebView(root);
     return root;
+  }
+
+  @Override
+  public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+    super.onViewCreated(view, savedInstanceState);
+    //noinspection ConstantConditions
+    viewModel = new ViewModelProvider(getActivity())
+        .get(MainViewModel.class);
+    viewModel.getAnimals().observe(getViewLifecycleOwner(), new Observer<List<Animal>>() {
+      @Override
+      public void onChanged(List<Animal> animals) {
+        contentView.loadUrl(animals.get(49).getUrl());
+      }
+    });
   }
 
   private void setupWebView(View root) {
@@ -52,58 +71,7 @@ public class ImageFragment extends Fragment {
     settings.setDisplayZoomControls(false);
     settings.setUseWideViewPort(true);
     settings.setLoadWithOverviewMode(true);
-    new RetrieveImageTask().execute();
   }
-
-  private class RetrieveImageTask extends AsyncTask<Void, Void, List<Animal>> {
-
-
-    private AnimalService animalService;
-
-    @Override
-    protected void onPreExecute() {
-      super.onPreExecute();
-      Gson gson = new GsonBuilder()
-          .excludeFieldsWithoutExposeAnnotation()
-          .create();
-      Retrofit retrofit = new Retrofit.Builder()
-          .baseUrl(BuildConfig.BASE_URL)
-          .addConverterFactory(GsonConverterFactory.create(gson))
-          .build();
-
-      animalService = retrofit.create(AnimalService.class);
-    }
-
-    @Override
-    protected List<Animal> doInBackground(Void... voids) {
-
-      try {
-
-        Response<List<Animal>> response = animalService.getAnimals(BuildConfig.CLIENT_KEY)
-            .execute();
-        if (response.isSuccessful()) {
-          List<Animal> animals = response.body();
-          assert animals != null;
-          return animals;
-
-        } else {
-          Log.e("AnimalService", String.valueOf(response.errorBody().string()));
-          cancel(true);
-        }
-
-      } catch (IOException e) {
-        Log.e("AnimalService", e.getMessage(), e);
-      }
-      return null;
-    }
-
-    @Override
-    protected void onPostExecute(List<Animal> animals) {
-      super.onPostExecute(animals);
-      final String url = animals.get(40).getUrl();
-      contentView.loadUrl(url);
-    }
 
   }
 
-}
