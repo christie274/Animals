@@ -51,6 +51,7 @@ public class ImageFragment extends Fragment implements OnItemSelectedListener {
     setupWebView(root);
 
     toolbar = root.findViewById(R.id.toolbar);
+    // TODO set toolbar of the app
     toolbar.setTitle(R.string.app_name);
 
     spinner = root.findViewById(R.id.animals_spinner);
